@@ -1,0 +1,7 @@
+# GNOME Shell extension build artifacts
+schemas/*.compiled
+
+# Editor / OS temporary files
+*~
+.*.swp
+.DS_Store

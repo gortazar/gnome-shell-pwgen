@@ -1,0 +1,10 @@
+{
+  "uuid": "pwgen-generator@pwgen-gs.patxi",
+  "name": "Password Generator",
+  "description": "Automatically generates secure passwords using pwgen and copies them to the clipboard.",
+  "shell-version": [
+    "46"
+  ],
+  "url": "https://github.com/patxi/pwgen-gs",
+  "settings-schema": "org.gnome.shell.extensions.pwgen-generator"
+}

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.pwgen-generator" path="/org/gnome/shell/extensions/pwgen-generator/">
+    
+    <key name="password-length" type="i">
+      <default>14</default>
+      <summary>Password length</summary>
+      <description>The length of the generated password(s).</description>
+    </key>
+
+    <key name="use-numbers" type="b">
+      <default>true</default>
+      <summary>Use numbers</summary>
+      <description>Whether to include numbers in the password.</description>
+    </key>
+
+    <key name="use-symbols" type="b">
+      <default>true</default>
+      <summary>Use non-alphabetic symbols</summary>
+      <description>Whether to include non-alphabetic symbols (e.g. @, #, $, %) in the password.</description>
+    </key>
+
+    <key name="num-passwords" type="i">
+      <default>1</default>
+      <summary>Number of passwords</summary>
+      <description>How many passwords to generate.</description>
+    </key>
+
+  </schema>
+</schemalist>
