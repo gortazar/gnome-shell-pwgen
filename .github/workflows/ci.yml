@@ -67,11 +67,17 @@ jobs:
           dnf -y install gnome-shell pwgen glib2 dbus-daemon procps-ng git
           gnome-shell --version
       - uses: actions/checkout@v4
-      # The shell reads keyboard settings off the system bus at startup and dies
-      # if it cannot reach one, so a system bus has to exist even though nothing
-      # is listening on the other end of those calls.
-      - name: Start a system D-Bus
+      - name: Prepare the runtime environment
         run: |
+          # Installing the systemd package recreates /run/systemd/seats, and it
+          # does so *inside* the tmpfs above because packages are installed at run
+          # time rather than baked into the image. Its mere presence makes the
+          # shell choose its systemd login manager and abort on unreachable
+          # logind, so it has to go after the install, not before.
+          ls -la /run/systemd 2>/dev/null || echo "/run/systemd absent"
+          rm -rf /run/systemd
+          # The shell reads keyboard settings off the system bus at startup and
+          # dies if it cannot reach one, even though nothing answers those calls.
           mkdir -p /run/dbus
           dbus-daemon --system --fork
       # mutter refuses to run as root, and CI containers are root by default.

@@ -26,6 +26,20 @@ if [ "$(id -u)" = 0 ]; then
     exit 1
 fi
 
+# Both of these make the shell abort during startup with a stack trace that says
+# nothing about the real cause, so check them up front. Neither is fixable from
+# here: they need root.
+if [ -e /run/systemd/seats ]; then
+    echo "/run/systemd/seats exists: the shell will pick its systemd login" >&2
+    echo "manager and abort when logind is unreachable. Remove it (as root)." >&2
+    exit 1
+fi
+if [ ! -e /run/dbus/system_bus_socket ] && [ ! -e /var/run/dbus/system_bus_socket ]; then
+    echo "no system D-Bus: the shell reads keyboard settings from it during" >&2
+    echo "startup and aborts. Start one with 'dbus-daemon --system --fork'." >&2
+    exit 1
+fi
+
 say "GNOME Shell version"
 gnome-shell --version
 
