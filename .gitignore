@@ -1,5 +1,6 @@
 # GNOME Shell extension build artifacts
 schemas/*.compiled
+*.shell-extension.zip
 
 # Editor / OS temporary files
 *~
