@@ -3,7 +3,10 @@
   "name": "Password Generator",
   "description": "Automatically generates secure passwords using pwgen and copies them to the clipboard.",
   "shell-version": [
-    "46"
+    "46",
+    "47",
+    "48",
+    "49"
   ],
   "url": "https://github.com/patxi/pwgen-gs",
   "settings-schema": "org.gnome.shell.extensions.pwgen-generator"

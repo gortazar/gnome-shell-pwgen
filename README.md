@@ -9,7 +9,7 @@ copy it again.
 
 ## Requirements
 
-- GNOME Shell 46
+- GNOME Shell 46, 47, 48 or 49 (each verified by `ci/smoke-test.sh`)
 - `pwgen` (`sudo apt install pwgen`)
 
 ## Installation
@@ -47,6 +47,68 @@ journalctl --user -f | grep -i "Password Generator"
 ```
 
 If the message does not appear after a reload attempt, the old module is still loaded.
+
+## Testing against other GNOME Shell versions
+
+`metadata.json` declares only the versions that have been verified, so a newer
+shell refuses to load the extension outright. To find out whether the code actually
+still works on a newer version, the extension has to be loaded by that version.
+
+`ci/smoke-test.sh` does that in a throwaway headless shell, without touching your
+session:
+
+```sh
+./ci/smoke-test.sh
+```
+
+It installs the extension into a scratch prefix, starts `gnome-shell --headless`
+on a private D-Bus session, disables extension version validation (otherwise a
+newer shell reports `OUT_OF_DATE` and never runs the code), and then checks that:
+
+1. the extension reaches the `ENABLED` state, queried over D-Bus;
+2. generating a password actually works; and
+3. the shell log contains no `Password Generator Error` or
+   `clipboard read-back mismatch`.
+
+Check 2 is the one that matters. A load-only test would not have caught the
+`communicate_utf8_async` bug, because that only fired when the menu item was
+activated. There is no way to click a menu item from outside the shell —
+`org.gnome.Shell.Eval` is locked behind unsafe mode, which has no D-Bus property
+and no command-line flag — so `ci/selftest-hook.js` is appended to the *installed
+copy* of `extension.js` and calls `_generatePassword()` from inside the shell,
+printing the result for the harness to grep. The repository file is never
+modified.
+
+Requirements, all of which the shell fails hard without:
+
+- **Not root** — mutter refuses to start.
+- **A system D-Bus** (`dbus-daemon --system`) — the shell reads keyboard settings
+  from it at startup, and aborts if it cannot connect, even though nothing needs
+  to answer.
+- **No `/run/systemd/seats`** — if present, the shell selects its systemd login
+  manager and aborts when logind is unreachable. In containers, mount a tmpfs
+  over `/run`.
+- `--no-x11` is passed to the shell, because Xwayland cannot start without a
+  writable `/tmp/.X11-unix` and its failure kills the whole shell.
+
+### CI
+
+`.github/workflows/ci.yml` runs that smoke test across a matrix of Fedora
+containers, since Fedora ships exactly one GNOME per release:
+
+| image | GNOME Shell |
+| --- | --- |
+| `fedora:40` | 46 |
+| `fedora:41` | 47 |
+| `fedora:42` | 48 |
+| `fedora:43` | 49 |
+| `fedora:rawhide` | next (non-gating) |
+
+Every job prints the version it actually got, so the table never has to be trusted.
+The workflow also runs on a weekly schedule, because new GNOME releases break
+extensions without anyone touching the repository.
+
+When a newer version passes, add it to `shell-version` in `metadata.json`.
 
 ## Preferences
 

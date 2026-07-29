@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # New GNOME releases are what break extensions, and they land without us
+  # touching the repo. Run weekly so a break shows up on its own.
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  syntax:
+    name: Syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # GJS is not on the runner and the files import resource:/// URIs that only
+      # exist inside gnome-shell, so this is a parse check only. Real loading is
+      # covered by the shell job below.
+      - name: Parse extension.js and prefs.js
+        run: |
+          for f in extension.js prefs.js; do
+            cp "$f" "/tmp/${f%.js}.mjs"
+            node --check "/tmp/${f%.js}.mjs"
+            echo "$f: syntax OK"
+          done
+      - name: Validate gschema
+        run: |
+          sudo apt-get update && sudo apt-get install -y libglib2.0-bin
+          glib-compile-schemas --strict --dry-run schemas/
+
+  shell:
+    name: GNOME Shell (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+      # A tmpfs /run hides the image's /run/systemd/seats. Without that the shell
+      # picks its systemd login manager, fails to reach logind, and aborts during
+      # startup.
+      options: --tmpfs /run
+    strategy:
+      fail-fast: false
+      matrix:
+        # Fedora ships one GNOME per release, so the image tag picks the version:
+        #   fedora:40 -> 46   fedora:41 -> 47   fedora:42 -> 48   fedora:43 -> 49
+        # Each job prints the exact version it got, so the mapping never has to be
+        # trusted. Add the next tag when it ships.
+        image:
+          - fedora:40
+          - fedora:41
+          - fedora:42
+          - fedora:43
+        include:
+          # Rawhide tracks the next GNOME before release. It is the early warning,
+          # so it must not gate the build when it breaks for unrelated reasons.
+          - image: fedora:rawhide
+            experimental: true
+    continue-on-error: ${{ matrix.experimental == true }}
+    steps:
+      - name: Install GNOME Shell and test dependencies
+        run: |
+          dnf -y install gnome-shell pwgen glib2 dbus-daemon procps-ng git
+          gnome-shell --version
+      - uses: actions/checkout@v4
+      # The shell reads keyboard settings off the system bus at startup and dies
+      # if it cannot reach one, so a system bus has to exist even though nothing
+      # is listening on the other end of those calls.
+      - name: Start a system D-Bus
+        run: |
+          mkdir -p /run/dbus
+          dbus-daemon --system --fork
+      # mutter refuses to run as root, and CI containers are root by default.
+      - name: Create unprivileged test user
+        run: |
+          useradd -m tester
+          chown -R tester "$GITHUB_WORKSPACE"
+      - name: Smoke test
+        run: su tester -c "cd '$GITHUB_WORKSPACE' && ./ci/smoke-test.sh"
