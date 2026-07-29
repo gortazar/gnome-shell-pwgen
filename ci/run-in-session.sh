@@ -23,7 +23,19 @@ gsettings set org.gnome.shell enabled-extensions "['$UUID']"
 # start is fatal to the whole shell. Nothing here needs X.
 gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$LOG" 2>&1 &
 SHELL_PID=$!
-trap 'kill $SHELL_PID 2>/dev/null || true; wait $SHELL_PID 2>/dev/null || true' EXIT
+
+# A plain "kill; wait" deadlocks whenever the shell does not honour SIGTERM,
+# which is exactly what happens on some versions when startup goes wrong: the
+# job then hangs instead of reporting the failure. Escalate on a deadline.
+cleanup() {
+    kill "$SHELL_PID" 2>/dev/null || return 0
+    for _ in $(seq 1 10); do
+        kill -0 "$SHELL_PID" 2>/dev/null || return 0
+        sleep 1
+    done
+    kill -9 "$SHELL_PID" 2>/dev/null || true
+}
+trap cleanup EXIT
 
 for _ in $(seq 1 60); do
     shell_up && break

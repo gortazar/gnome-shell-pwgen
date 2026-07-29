@@ -14,6 +14,7 @@ jobs:
   syntax:
     name: Syntax
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,11 +38,14 @@ jobs:
   shell:
     name: GNOME Shell (${{ matrix.image }})
     runs-on: ubuntu-latest
+    # Backstop: a shell that will not start has hung a job here before. Passing
+    # jobs finish in about two minutes.
+    timeout-minutes: 15
     container:
       image: ${{ matrix.image }}
-      # A tmpfs /run hides the image's /run/systemd/seats. Without that the shell
-      # picks its systemd login manager, fails to reach logind, and aborts during
-      # startup.
+      # Start from a clean /run. Note this is not by itself enough to keep
+      # /run/systemd/seats away -- the package install below recreates it on this
+      # tmpfs -- so it is deleted explicitly afterwards.
       options: --tmpfs /run
     strategy:
       fail-fast: false
