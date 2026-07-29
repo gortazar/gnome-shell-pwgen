@@ -110,6 +110,39 @@ extensions without anyone touching the repository.
 
 When a newer version passes, add it to `shell-version` in `metadata.json`.
 
+## Publishing to extensions.gnome.org
+
+EGO requires the package to pass [`shexli`](https://pypi.org/project/shexli/)
+before upload. `ci/lint-package.sh` builds the package that would be uploaded and
+runs it:
+
+```sh
+./ci/lint-package.sh
+```
+
+It installs shexli into a throwaway venv if it is not already on `PATH`, so no
+setup is needed. Two things it deliberately does differently from running
+`shexli .` by hand:
+
+- It lints the **package**, not the checkout. Pointed at the repository root,
+  shexli reports `.git` as bundled binaries and `ci/` as unreachable JavaScript —
+  none of which is ever uploaded. The staged file set matches what
+  `gnome-extensions pack` ships.
+- It fails on errors and warnings by reading the JSON report, because **shexli
+  exits 0 even when it reports errors**, so its exit status cannot be used as a
+  gate.
+
+`manual_review` findings do not fail the build. This extension gets one for
+`St.Clipboard.get_default()`, which is unavoidable for a clipboard tool; the
+guideline is that clipboard access be *declared*, which `metadata.json` does in
+its description. Expect a human reviewer to look at it.
+
+To build the upload artifact itself:
+
+```sh
+gnome-extensions pack --force .
+```
+
 ## Preferences
 
 Available from **Preferences...** in the menu, or `gnome-extensions prefs pwgen-generator@pwgen-gs.patxi`:

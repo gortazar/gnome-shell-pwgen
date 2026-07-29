@@ -35,8 +35,23 @@ jobs:
           sudo apt-get update && sudo apt-get install -y libglib2.0-bin
           glib-compile-schemas --strict --dry-run schemas/
 
+  # The static analysis extensions.gnome.org asks you to run before uploading.
+  # Cheap, and a failure here blocks publishing, so it gates the shell matrix.
+  lint:
+    name: EGO package lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: shexli
+        run: ./ci/lint-package.sh
+
   shell:
     name: GNOME Shell (${{ matrix.image }})
+    needs: lint
     runs-on: ubuntu-latest
     # Backstop: a shell that will not start has hung a job here before. Passing
     # jobs finish in about two minutes.
