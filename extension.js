@@ -9,6 +9,10 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
+// GNOME Shell does not promisify this for us, so `await proc.communicate_utf8_async()`
+// would throw before pwgen's output is ever read. Safe to call repeatedly.
+Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async');
+
 const PwgenIndicator = GObject.registerClass(
 class PwgenIndicator extends PanelMenu.Button {
     _init(extension) {
@@ -102,7 +106,7 @@ class PwgenIndicator extends PanelMenu.Button {
                 }
 
                 // Copy to clipboard
-                St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, passwordsText);
+                this._copyToClipboard(passwordsText);
 
                 // Notify user
                 Main.notify('Password Generator', 'Password(s) copied to clipboard.');
@@ -137,6 +141,20 @@ class PwgenIndicator extends PanelMenu.Button {
         }
     }
 
+    // Sets the clipboard and reads it back, so a silent copy failure ends up in the
+    // log instead of looking like success. Never logs the password itself.
+    _copyToClipboard(text) {
+        const clipboard = St.Clipboard.get_default();
+        clipboard.set_text(St.ClipboardType.CLIPBOARD, text);
+
+        clipboard.get_text(St.ClipboardType.CLIPBOARD, (_clipboard, readBack) => {
+            if (readBack !== text) {
+                console.warn('Password Generator: clipboard read-back mismatch ' +
+                    `(wrote ${text.length} chars, read back ${readBack ? readBack.length : 0})`);
+            }
+        });
+    }
+
     _updateHistory(passwords) {
         // Clear previous history
         this._historySection.removeAll();
@@ -151,7 +169,7 @@ class PwgenIndicator extends PanelMenu.Button {
         passwords.forEach(password => {
             const item = new PopupMenu.PopupImageMenuItem(password, 'edit-copy-symbolic');
             item.connect('activate', () => {
-                St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, password);
+                this._copyToClipboard(password);
                 Main.notify('Password Copied', `Copied: ${password}`);
             });
             this._historySection.addMenuItem(item);
