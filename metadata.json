@@ -8,6 +8,6 @@
     "48",
     "49"
   ],
-  "url": "https://github.com/patxi/pwgen-gs",
+  "url": "https://github.com/gortazar/gnome-shell-pwgen",
   "settings-schema": "org.gnome.shell.extensions.pwgen-generator"
 }
