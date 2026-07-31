@@ -166,11 +166,16 @@ class PwgenIndicator extends PanelMenu.Button {
         historyHeader.label.style = 'font-size: 0.85em; font-weight: bold; color: #888; padding: 4px 6px;';
         this._historySection.addMenuItem(historyHeader);
 
-        passwords.forEach(password => {
-            const item = new PopupMenu.PopupImageMenuItem(password, 'edit-copy-symbolic');
+        // The password itself is never used as a label: the menu sits in the top
+        // panel, where it is visible to anyone looking at the screen and to
+        // screen sharing and recording. Items are numbered instead, and the value
+        // is only reachable through the clipboard.
+        passwords.forEach((password, index) => {
+            const item = new PopupMenu.PopupImageMenuItem(
+                `Password ${index + 1}`, 'edit-copy-symbolic');
             item.connect('activate', () => {
                 this._copyToClipboard(password);
-                Main.notify('Password Copied', `Copied: ${password}`);
+                Main.notify('Password Copied', `Password ${index + 1} copied to clipboard.`);
             });
             this._historySection.addMenuItem(item);
         });

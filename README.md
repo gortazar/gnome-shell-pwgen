@@ -3,9 +3,11 @@
 A GNOME Shell extension that generates secure passwords with [`pwgen`](https://linux.die.net/man/1/pwgen)
 and copies them to the clipboard.
 
-A panel icon opens a menu with a **Generate & Copy** action. Generated passwords are
-copied to the clipboard and also listed in the menu, where each one can be clicked to
-copy it again.
+A panel icon opens a menu with a **Generate & Copy** action. Generated passwords go
+straight to the clipboard. The menu lists them as **Password 1**, **Password 2** and so
+on, so an earlier one can be clicked to copy it again — the values themselves are never
+displayed, since the panel menu is visible to anyone watching the screen, including
+during screen sharing or recording.
 
 ## Requirements
 
