@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 Patxi Gortázar
+// SPDX-FileCopyrightText: 2026 Patxi Gortázar <patxi.gortazar@gmail.com>
 // SPDX-License-Identifier: GPL-2.0-or-later
 //
 // This program is free software; you can redistribute it and/or modify it under
