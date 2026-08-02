@@ -15,6 +15,15 @@ on, so an earlier one can be clicked to copy it again — the values themselves 
 displayed, since the panel menu is visible to anyone watching the screen, including
 during screen sharing or recording.
 
+## Review and AI use
+
+This extension was written with AI assistance, reviewed line by line by the
+author, and audited rule by rule against the
+[GNOME Shell Extensions Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html).
+That audit, the reasoning behind the design decisions a reviewer is most likely
+to question, and how to reproduce every check are in
+[GNOME_REVIEW_RULES.md](GNOME_REVIEW_RULES.md).
+
 ## Requirements
 
 - GNOME Shell 46 to 50 (each verified by `ci/smoke-test.sh`)
