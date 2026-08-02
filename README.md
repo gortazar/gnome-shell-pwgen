@@ -149,8 +149,11 @@ its description. Expect a human reviewer to look at it.
 To build the upload artifact itself:
 
 ```sh
-gnome-extensions pack --force .
+gnome-extensions pack --force --extra-source=LICENSE .
 ```
+
+`--extra-source` is needed because `gnome-extensions pack` does not ship `LICENSE`
+by default, and the package should carry the terms it is distributed under.
 
 ## Preferences
 
@@ -180,4 +183,9 @@ material.
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE).
+GPL-2.0-or-later — see [LICENSE](LICENSE).
+
+The extension imports GNOME Shell modules (`ui/main.js`, `ui/panelMenu.js`,
+`ui/popupMenu.js`) and subclasses `PanelMenu.Button`, so it forms a combined work
+with GNOME Shell, which is GPL-2.0-or-later. Matching that license keeps the
+combination unambiguous — Apache-2.0, used previously, is not GPLv2-compatible.

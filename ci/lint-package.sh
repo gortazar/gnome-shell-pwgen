@@ -31,7 +31,7 @@ say "shexli: $(command -v shexli)"
 # not uploaded, so it must not be linted either.
 say "Assembling package"
 mkdir -p "$STAGE/schemas"
-cp "$SRC/metadata.json" "$SRC/extension.js" "$SRC/prefs.js" "$STAGE/"
+cp "$SRC/metadata.json" "$SRC/extension.js" "$SRC/prefs.js" "$SRC/LICENSE" "$STAGE/"
 cp "$SRC"/schemas/*.gschema.xml "$STAGE/schemas/"
 [ -f "$SRC/stylesheet.css" ] && cp "$SRC/stylesheet.css" "$STAGE/"
 [ -d "$SRC/locale" ] && cp -r "$SRC/locale" "$STAGE/"
