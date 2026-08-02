@@ -66,7 +66,8 @@ jobs:
       fail-fast: false
       matrix:
         # Fedora ships one GNOME per release, so the image tag picks the version:
-        #   fedora:40 -> 46   fedora:41 -> 47   fedora:42 -> 48   fedora:43 -> 49
+        #   fedora:40 -> 46   fedora:41 -> 47   fedora:42 -> 48
+        #   fedora:43 -> 49   fedora:44 -> 50
         # Each job prints the exact version it got, so the mapping never has to be
         # trusted. Add the next tag when it ships.
         image:
@@ -74,6 +75,7 @@ jobs:
           - fedora:41
           - fedora:42
           - fedora:43
+          - fedora:44
         include:
           # Rawhide tracks the next GNOME before release. It is the early warning,
           # so it must not gate the build when it breaks for unrelated reasons.

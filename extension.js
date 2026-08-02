@@ -9,9 +9,26 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-// GNOME Shell does not promisify this for us, so `await proc.communicate_utf8_async()`
-// would throw before pwgen's output is ever read. Safe to call repeatedly.
-Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async');
+// Runs pwgen and resolves with its stdout.
+//
+// Gio._promisify() would be the shorter way to await this, but it patches a
+// prototype shared with the rest of the shell, at import time and without ever
+// undoing it in disable(). The review guidelines ask that nothing be modified
+// before enable() is called, so wrap the callback locally instead.
+function communicateUtf8(proc, cancellable = null) {
+    return new Promise((resolve, reject) => {
+        proc.communicate_utf8_async(null, cancellable, (subprocess, result) => {
+            try {
+                // Unlike the promisified form, the raw finish() also returns the
+                // gboolean, so the first value has to be discarded here.
+                const [, stdout, stderr] = subprocess.communicate_utf8_finish(result);
+                resolve([stdout, stderr]);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    });
+}
 
 const PwgenIndicator = GObject.registerClass(
 class PwgenIndicator extends PanelMenu.Button {
@@ -97,7 +114,7 @@ class PwgenIndicator extends PanelMenu.Button {
                 Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
             );
 
-            const [stdout, stderr] = await proc.communicate_utf8_async(null, null);
+            const [stdout, stderr] = await communicateUtf8(proc);
 
             if (proc.get_successful()) {
                 const passwordsText = stdout.trim();

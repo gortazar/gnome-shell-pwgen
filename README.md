@@ -17,7 +17,7 @@ during screen sharing or recording.
 
 ## Requirements
 
-- GNOME Shell 46, 47, 48 or 49 (each verified by `ci/smoke-test.sh`)
+- GNOME Shell 46 to 50 (each verified by `ci/smoke-test.sh`)
 - `pwgen` (`sudo apt install pwgen`)
 
 ## Installation
@@ -110,6 +110,7 @@ containers, since Fedora ships exactly one GNOME per release:
 | `fedora:41` | 47 |
 | `fedora:42` | 48 |
 | `fedora:43` | 49 |
+| `fedora:44` | 50 |
 | `fedora:rawhide` | next (non-gating) |
 
 Every job prints the version it actually got, so the table never has to be trusted.
