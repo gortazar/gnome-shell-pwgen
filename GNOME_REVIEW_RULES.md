@@ -126,7 +126,7 @@ relicensed to GPL-2.0-or-later. SPDX headers are on both source files and
 | Recommendation | Status |
 | --- | --- |
 | No unnecessary files | Followed — `shexli` reports zero warnings on the package. |
-| Use a linter | Partly — `shexli` runs in CI on every push; ESLint is not configured. |
+| Use a linter | Followed — ESLint (flat config, `eslint.config.js`) and `shexli` both run in CI on every push. |
 | Follow the HIG | Mostly — standard panel menu and `Adw` preferences. One inline style hardcodes a grey (`extension.js:191`) rather than following the theme. |
 
 ## Why pwgen rather than generating in GJS
@@ -150,8 +150,9 @@ The guidelines discourage external binaries, so to state the reasoning plainly:
 ## Reproducing these checks
 
 ```sh
-./ci/lint-package.sh   # builds the upload package and runs shexli over it
-./ci/smoke-test.sh     # loads the extension into a throwaway headless shell
+npm ci && npx eslint .   # ESLint over the extension sources
+./ci/lint-package.sh     # builds the upload package and runs shexli over it
+./ci/smoke-test.sh       # loads the extension into a throwaway headless shell
 ```
 
 CI runs both on every push, across Fedora containers carrying GNOME Shell 46

@@ -6,3 +6,6 @@ schemas/*.compiled
 *~
 .*.swp
 .DS_Store
+
+# Lint tooling
+node_modules/

@@ -12,7 +12,7 @@ on:
 
 jobs:
   syntax:
-    name: Syntax
+    name: Syntax and ESLint
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -20,6 +20,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
+      - name: Install lint tooling
+        run: npm ci
+      - name: ESLint
+        run: npx eslint .
       # GJS is not on the runner and the files import resource:/// URIs that only
       # exist inside gnome-shell, so this is a parse check only. Real loading is
       # covered by the shell job below.

@@ -1,0 +1,15 @@
+{
+  "name": "pwgen-generator-extension",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lint tooling for the Password Generator GNOME Shell extension (not shipped in the package)",
+  "license": "GPL-2.0-or-later",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.0.0"
+  }
+}

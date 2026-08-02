@@ -153,8 +153,8 @@ class PwgenIndicator extends PanelMenu.Button {
                 )) {
                     isNotFoundError = true;
                 }
-            } catch (e) {
-                // Ignore matching error
+            } catch {
+                // error.matches() throws for non-GError values; treat as no match.
             }
 
             const errorMsg = error.message || String(error);
