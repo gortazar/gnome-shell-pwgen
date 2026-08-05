@@ -6,8 +6,6 @@
 // Foundation; either version 2 of the License, or (at your option) any later
 // version. See the LICENSE file for the full text.
 
-import Gio from 'gi://Gio';
-import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
@@ -17,26 +15,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-// Runs pwgen and resolves with its stdout.
-//
-// Gio._promisify() would be the shorter way to await this, but it patches a
-// prototype shared with the rest of the shell, at import time and without ever
-// undoing it in disable(). The review guidelines ask that nothing be modified
-// before enable() is called, so wrap the callback locally instead.
-function communicateUtf8(proc, cancellable = null) {
-    return new Promise((resolve, reject) => {
-        proc.communicate_utf8_async(null, cancellable, (subprocess, result) => {
-            try {
-                // Unlike the promisified form, the raw finish() also returns the
-                // gboolean, so the first value has to be discarded here.
-                const [, stdout, stderr] = subprocess.communicate_utf8_finish(result);
-                resolve([stdout, stderr]);
-            } catch (error) {
-                reject(error);
-            }
-        });
-    });
-}
+import { generateMany } from './lib/generator.js';
 
 const PwgenIndicator = GObject.registerClass(
 class PwgenIndicator extends PanelMenu.Button {
@@ -94,75 +73,39 @@ class PwgenIndicator extends PanelMenu.Button {
 
     async _generatePassword() {
         const length = this._settings.get_int('password-length');
-        const useNumbers = this._settings.get_boolean('use-numbers');
-        const useSymbols = this._settings.get_boolean('use-symbols');
         const numPasswords = this._settings.get_int('num-passwords');
 
-        // Build pwgen arguments
-        // -s: secure
-        // -1: one per line
-        const args = ['pwgen', '-s', '-1'];
-        
-        if (useNumbers) {
-            args.push('-n');
-        } else {
-            args.push('-0');
-        }
-
-        if (useSymbols) {
-            args.push('-y');
-        }
-
-        args.push(length.toString());
-        args.push(numPasswords.toString());
+        // Letters are always in play, mirroring what `pwgen -s` produced when
+        // generation still went through the external binary; the two switches
+        // only add digits and symbols on top.
+        const classes = {
+            lowercase: true,
+            uppercase: true,
+            digits: this._settings.get_boolean('use-numbers'),
+            symbols: this._settings.get_boolean('use-symbols'),
+        };
 
         try {
-            const proc = Gio.Subprocess.new(
-                args,
-                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
-            );
+            const passwords = await generateMany({
+                length,
+                classes,
+                count: numPasswords,
+            });
 
-            const [stdout, stderr] = await communicateUtf8(proc);
+            // Copy to clipboard
+            this._copyToClipboard(passwords.join('\n'));
 
-            if (proc.get_successful()) {
-                const passwordsText = stdout.trim();
-                if (!passwordsText) {
-                    throw new Error('No output from pwgen');
-                }
+            // Notify user
+            Main.notify('Password Generator', 'Password(s) copied to clipboard.');
 
-                // Copy to clipboard
-                this._copyToClipboard(passwordsText);
-
-                // Notify user
-                Main.notify('Password Generator', 'Password(s) copied to clipboard.');
-
-                // Update recent passwords list in the menu
-                const passwords = passwordsText.split('\n').map(p => p.trim()).filter(Boolean);
-                this._updateHistory(passwords);
-            } else {
-                throw new Error(stderr.trim() || 'Unknown error running pwgen');
-            }
+            // Update recent passwords list in the menu
+            this._updateHistory(passwords);
         } catch (error) {
+            // Never a weaker password on failure: the generator refuses rather
+            // than falling back, and the user is told nothing was produced.
             console.error('Password Generator Error:', error);
-            
-            let isNotFoundError = false;
-            try {
-                if (error.matches && (
-                    error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND) ||
-                    error.matches(GLib.SpawnError, GLib.SpawnError.NOENT)
-                )) {
-                    isNotFoundError = true;
-                }
-            } catch {
-                // error.matches() throws for non-GError values; treat as no match.
-            }
-
-            const errorMsg = error.message || String(error);
-            if (isNotFoundError || errorMsg.includes('pwgen') || errorMsg.includes('ENOENT') || errorMsg.includes('not found')) {
-                Main.notify('Password Generator Error', 'pwgen is not installed. Please run "sudo apt install pwgen" to use this extension.');
-            } else {
-                Main.notify('Password Generator Error', `Failed to generate password: ${errorMsg}`);
-            }
+            Main.notify('Password Generator Error',
+                `Failed to generate password: ${error.message || error}`);
         }
     }
 

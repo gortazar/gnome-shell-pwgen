@@ -18,6 +18,7 @@ const gjsGlobals = {
     clearInterval: 'readonly',
     TextDecoder: 'readonly',
     TextEncoder: 'readonly',
+    globalThis: 'readonly',
 };
 
 export default [
@@ -25,7 +26,7 @@ export default [
         ignores: ['node_modules/**'],
     },
     {
-        files: ['extension.js', 'prefs.js'],
+        files: ['extension.js', 'prefs.js', 'lib/**/*.js', 'tests/**/*.js'],
         ...js.configs.recommended,
         languageOptions: {
             ecmaVersion: 2022,

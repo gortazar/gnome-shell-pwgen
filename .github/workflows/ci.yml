@@ -30,15 +30,29 @@ jobs:
       # covered by the shell job below.
       - name: Parse extension.js and prefs.js
         run: |
-          for f in extension.js prefs.js; do
-            cp "$f" "/tmp/${f%.js}.mjs"
-            node --check "/tmp/${f%.js}.mjs"
+          for f in extension.js prefs.js lib/generator.js; do
+            cp "$f" "/tmp/$(basename "${f%.js}").mjs"
+            node --check "/tmp/$(basename "${f%.js}").mjs"
             echo "$f: syntax OK"
           done
       - name: Validate gschema
         run: |
           sudo apt-get update && sudo apt-get install -y libglib2.0-bin
           glib-compile-schemas --strict --dry-run schemas/
+
+  # The generator is a shell-free module, so its unit tests need nothing but gjs.
+  unit:
+    name: Generator unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install gjs
+        run: sudo apt-get update && sudo apt-get install -y gjs
+      - name: gjs --version
+        run: gjs --version
+      - name: Unit tests
+        run: gjs -m tests/run.js
 
   # The static analysis extensions.gnome.org asks you to run before uploading.
   # Cheap, and a failure here blocks publishing, so it gates the shell matrix.
@@ -90,7 +104,7 @@ jobs:
     steps:
       - name: Install GNOME Shell and test dependencies
         run: |
-          dnf -y install gnome-shell pwgen glib2 dbus-daemon procps-ng git
+          dnf -y install gnome-shell glib2 dbus-daemon procps-ng git
           gnome-shell --version
       - uses: actions/checkout@v4
       - name: Prepare the runtime environment

@@ -30,9 +30,10 @@ say "shexli: $(command -v shexli)"
 # The same file set `gnome-extensions pack` ships. Anything not listed here is
 # not uploaded, so it must not be linted either.
 say "Assembling package"
-mkdir -p "$STAGE/schemas"
+mkdir -p "$STAGE/schemas" "$STAGE/lib"
 cp "$SRC/metadata.json" "$SRC/extension.js" "$SRC/prefs.js" "$SRC/LICENSE" "$STAGE/"
 cp "$SRC"/schemas/*.gschema.xml "$STAGE/schemas/"
+cp "$SRC"/lib/*.js "$STAGE/lib/"
 [ -f "$SRC/stylesheet.css" ] && cp "$SRC/stylesheet.css" "$STAGE/"
 [ -d "$SRC/locale" ] && cp -r "$SRC/locale" "$STAGE/"
 (cd "$STAGE" && zip -qr "$ZIP" .)
