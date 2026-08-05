@@ -9,8 +9,9 @@
      badge is static: there is no service that reports lint status, and whether
      the lint passes is already covered by the CI badge. -->
 
-A GNOME Shell extension that generates secure passwords with [`pwgen`](https://linux.die.net/man/1/pwgen)
-and copies them to the clipboard.
+A GNOME Shell extension that generates secure passwords and copies them to the
+clipboard. Generation happens inside the extension, from the system entropy pool —
+there is no external `pwgen` binary and no subprocess.
 
 A panel icon opens a menu with a **Generate & Copy** action. Generated passwords go
 straight to the clipboard. The menu lists them as **Password 1**, **Password 2** and so
@@ -30,7 +31,8 @@ to question, and how to reproduce every check are in
 ## Requirements
 
 - GNOME Shell 46 to 50 (each verified by `ci/smoke-test.sh`)
-- `pwgen` (`sudo apt install pwgen`)
+
+Nothing else. The extension has no runtime dependency beyond GNOME Shell itself.
 
 ## Installation
 
@@ -174,11 +176,36 @@ Available from **Preferences...** in the menu, or `gnome-extensions prefs pwgen-
 | Setting | Default | Description |
 | --- | --- | --- |
 | Password Length | 14 | Length of each generated password (4–128) |
-| Use Numbers | on | Include digits (`pwgen -n`, otherwise `-0`) |
-| Use Symbols | on | Include non-alphabetic symbols (`pwgen -y`) |
+| Use Numbers | on | Include digits |
+| Use Symbols | on | Include non-alphabetic symbols (`!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~`) |
 | Number of Passwords | 1 | How many passwords to generate (1–50) |
 
-Passwords are always generated with `pwgen -s` (completely random, secure).
+Lower- and upper-case letters are always included. Every enabled class is
+guaranteed to appear at least once, in a random position.
+
+## How passwords are generated
+
+`lib/generator.js` reads bytes from the OS entropy pool — `crypto.getRandomValues`
+where the GJS behind the running shell provides it, otherwise `/dev/urandom`
+through the async Gio API — and selects characters by rejection sampling, so no
+character is more likely than another. If entropy cannot be read the extension
+reports an error; it never falls back to a weaker source. The reasoning, and the
+review rules this satisfies, are in
+[GNOME_REVIEW_RULES.md](GNOME_REVIEW_RULES.md#generating-in-gjs-rather-than-shelling-out-to-pwgen).
+
+### Unit tests
+
+The generator imports nothing from GNOME Shell, so its tests need neither a
+display nor a running shell:
+
+```sh
+gjs -m tests/run.js
+```
+
+They cover the requested length, the enabled character classes, rejection
+sampling (via a scripted byte source that would expose a modulo shortcut), the
+distribution over many draws, the random placement of the guaranteed characters,
+and the refusal to produce anything when entropy is unavailable.
 
 ## Troubleshooting
 
