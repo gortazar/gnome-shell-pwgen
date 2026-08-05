@@ -60,7 +60,7 @@ local Promise wrapper (`extension.js:26`).
 | Rule | Status | Evidence |
 | --- | --- | --- |
 | Not obfuscated or minified | Pass | Plain, commented JavaScript. |
-| No excessive logging | Pass | Two calls, both failure paths: `:146`, `:177`. Nothing logged on success. |
+| No excessive logging | Pass | Two calls, both failure paths: `:106`, `:120`. Nothing logged on success. |
 | No forced `run_dispose()` | Pass | Not used. |
 | No telemetry | Pass | No network access of any kind. |
 | Must be functional | Pass | Verified on six shell versions in CI. |
@@ -69,10 +69,10 @@ local Promise wrapper (`extension.js:26`).
 
 | Rule | Status | Evidence |
 | --- | --- | --- |
-| No bundled binaries or libraries | Pass | Package is five files: metadata.json, extension.js, prefs.js, the schema XML, LICENSE. |
-| Processes spawn carefully and exit cleanly | Pass | `Gio.Subprocess` (`:120`) with `communicate_utf8_async`, which waits for exit. Failures are caught and reported. |
-| Privileged subprocess must not be user-writable | N/A | No privileged subprocess. No pkexec, no sudo. The "sudo apt install pwgen" string at `:162` is notification text shown to the user, never executed. |
-| External binaries strongly discouraged | See note | The extension is a pwgen frontend; see "Why pwgen" below. |
+| No bundled binaries or libraries | Pass | Package is six files: metadata.json, extension.js, prefs.js, lib/generator.js, the schema XML, LICENSE. |
+| Processes spawn carefully and exit cleanly | N/A | No process is spawned. Passwords are generated in-process by `lib/generator.js`. |
+| Privileged subprocess must not be user-writable | N/A | No subprocess at all. No pkexec, no sudo. |
+| External binaries strongly discouraged | Pass | No external binary is used; see "Generating in GJS rather than shelling out to pwgen" below. |
 
 ### Clipboard
 
@@ -127,30 +127,42 @@ relicensed to GPL-2.0-or-later. SPDX headers are on both source files and
 | --- | --- |
 | No unnecessary files | Followed — `shexli` reports zero warnings on the package. |
 | Use a linter | Followed — ESLint (flat config, `eslint.config.js`) and `shexli` both run in CI on every push. |
-| Follow the HIG | Mostly — standard panel menu and `Adw` preferences. One inline style hardcodes a grey (`extension.js:191`) rather than following the theme. |
+| Follow the HIG | Mostly — standard panel menu and `Adw` preferences. One inline style hardcodes a grey (`extension.js:134`) rather than following the theme. |
 
-## Why pwgen rather than generating in GJS
+## Generating in GJS rather than shelling out to pwgen
 
-The guidelines discourage external binaries, so to state the reasoning plainly:
+The extension used to run `pwgen -s`. It no longer does, and the reasoning is
+worth stating because the subprocess is the first thing a reviewer looks for:
 
+- The guidelines accept an external binary only when there is no alternative.
+  There is one here, and `pwgen(1)` is not part of any GNOME dependency chain, so
+  on a system without it the extension could do nothing but tell the user to
+  install a package.
 - Generating passwords safely needs a cryptographically secure random source and
-  unbiased selection over a character set. GJS exposes no CSPRNG; `GLib.Rand` is
-  not cryptographically secure. Doing this correctly means reading `/dev/urandom`
-  and implementing rejection sampling by hand — exactly the kind of code that
-  fails quietly and produces weak passwords.
-- `pwgen -s` is a long-established, widely packaged tool that already does this,
-  and reusing it is more trustworthy than a bespoke implementation inside a
-  panel applet.
-- Being a frontend for pwgen is the stated purpose of the extension, not an
-  implementation detail.
-- Nothing is bundled. `pwgen` is a distribution package, and when it is missing
-  the extension catches the spawn error and tells the user how to install it,
-  rather than failing silently. That path is covered by a test.
+  unbiased selection over the character set. `lib/generator.js` reads
+  `/dev/urandom` through the **async** Gio API, so no read blocks the
+  compositor's main loop, and picks characters by rejection sampling — a plain
+  `byte % charset.length` would make the first `256 % charset.length` characters
+  more likely than the rest.
+- `crypto.getRandomValues` is used instead when the GJS behind the running shell
+  exposes it. GJS 1.80 (GNOME 46) does not, so `/dev/urandom` is the path that
+  actually runs today. There is no third fallback: if entropy cannot be read the
+  generator throws and the user is notified, never a weaker password.
+- `GLib.Rand` and `Math.random()` are not cryptographically secure and are not
+  used. A unit test greps the module to keep it that way.
+- Every enabled character class is guaranteed to appear, and the guaranteed
+  characters are placed by a Fisher-Yates shuffle over CSPRNG bytes rather than
+  sitting in a fixed prefix.
+- The module imports only `Gio`, which is what makes the generator testable:
+  `tests/run.js` runs it under plain `gjs` with no display and no shell, with an
+  injectable byte source for the deterministic cases. A test asserts the module
+  never grows a shell-only import.
 
 ## Reproducing these checks
 
 ```sh
 npm ci && npx eslint .   # ESLint over the extension sources
+gjs -m tests/run.js      # generator unit tests, no display or shell needed
 ./ci/lint-package.sh     # builds the upload package and runs shexli over it
 ./ci/smoke-test.sh       # loads the extension into a throwaway headless shell
 ```
