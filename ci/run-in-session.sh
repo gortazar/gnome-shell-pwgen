@@ -48,10 +48,28 @@ shell_up || { echo "shell never took its bus name" >&2; exit 1; }
 info=$(gdbus call "${SHELL_BUS[@]}" \
     --method org.gnome.Shell.Extensions.GetExtensionInfo "$UUID")
 echo "extension info: $info"
+# The reply shape is not the same everywhere: the Fedora images used by CI report
+# 'state' (1 is ENABLED), while other builds report only the 'enabled' boolean and
+# an 'error' string. Accept either, or this check fails on a working extension
+# depending on which shell it is asked.
 state=$(sed -n "s/.*'state': <\([0-9.]*\)>.*/\1/p" <<<"$info")
+error=$(sed -n "s/.*'error': <'\([^']*\)'>.*/\1/p" <<<"$info")
 case "$state" in
-    1|1.0) echo "extension state: ENABLED" ;;
-    *)     echo "extension is not enabled (state=${state:-unknown})" >&2; exit 1 ;;
+    1|1.0)
+        echo "extension state: ENABLED"
+        ;;
+    "")
+        if [[ "$info" == *"'enabled': <true>"* ]] && [ -z "$error" ]; then
+            echo "extension state: enabled (this shell reports no 'state' field)"
+        else
+            echo "extension is not enabled: ${error:-'enabled' is not true}" >&2
+            exit 1
+        fi
+        ;;
+    *)
+        echo "extension is not enabled (state=$state) $error" >&2
+        exit 1
+        ;;
 esac
 
 # 2. Does generating actually work? A load-only test would not have caught the
