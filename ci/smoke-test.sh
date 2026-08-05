@@ -44,7 +44,13 @@ cleanup() {
         cp "$LOG" "$kept"
         echo "shell log kept at $kept"
     fi
-    rm -rf "$WORK"
+    # Tidying up must not decide the exit status. Two ways it fails otherwise: the
+    # document portal mounts a FUSE filesystem at $XDG_RUNTIME_DIR/doc that rm
+    # cannot remove, and session services outliving the shell by a moment can
+    # recreate directories under $HOME while rm walks it ("Directory not empty").
+    # Neither is a test failure, and what is left behind is a directory in /tmp.
+    fusermount -u "$XDG_RUNTIME_DIR/doc" 2>/dev/null || true
+    rm -rf "$WORK" 2>/dev/null || true
     return $status
 }
 trap cleanup EXIT
