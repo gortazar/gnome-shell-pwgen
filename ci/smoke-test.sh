@@ -4,7 +4,7 @@
 # is the only way to find out whether the extension still works on a given GNOME
 # Shell version.
 #
-# Requires: gnome-shell, glib2 tools, dbus-daemon, pwgen. Must not run as root
+# Requires: gnome-shell, glib2 tools, dbus-daemon. Must not run as root
 # (mutter refuses). Set KEEP_LOG=1 to keep the shell log on success.
 set -euo pipefail
 
@@ -44,9 +44,10 @@ say "GNOME Shell version"
 gnome-shell --version
 
 say "Installing extension into $EXT_DIR"
-mkdir -p "$EXT_DIR/schemas"
+mkdir -p "$EXT_DIR/schemas" "$EXT_DIR/lib"
 cp "$SRC/extension.js" "$SRC/prefs.js" "$SRC/metadata.json" "$EXT_DIR/"
 cp "$SRC"/schemas/*.gschema.xml "$EXT_DIR/schemas/"
+cp "$SRC"/lib/*.js "$EXT_DIR/lib/"
 glib-compile-schemas "$EXT_DIR/schemas"
 
 # Append the activation hook to the installed copy only; $SRC is left alone.

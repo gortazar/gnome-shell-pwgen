@@ -1,7 +1,7 @@
 {
   "uuid": "pwgen-generator@pwgen-gs.patxi",
   "name": "Password Generator",
-  "description": "Automatically generates secure passwords using pwgen and copies them to the clipboard.",
+  "description": "Generates secure passwords in-process from the system entropy pool and copies them to the clipboard.",
   "shell-version": [
     "46",
     "47",
