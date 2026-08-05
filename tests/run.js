@@ -5,6 +5,7 @@
 
 import './generator-test.js';
 import './purity-test.js';
+import './ci-hook-test.js';
 
 import { run } from './harness.js';
 
