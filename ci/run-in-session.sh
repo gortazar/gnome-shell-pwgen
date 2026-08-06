@@ -88,3 +88,24 @@ case "$result" in
     "")  echo "self-test never reported: generation hung or the hook never ran" >&2; exit 1 ;;
     *)   echo "self-test failed" >&2; exit 1 ;;
 esac
+
+# 3. Disabling the extension mid-generation. Whether that went badly is decided by
+# smoke-test.sh, which greps the log for the criticals a continuation running into
+# a destroyed menu leaves behind; here we only make sure the scenario ran to
+# completion, so that grep is not reading a log where nothing happened.
+for _ in $(seq 1 40); do
+    grep -q "PWGEN_SELFTEST race=" "$LOG" && break
+    kill -0 $SHELL_PID 2>/dev/null || { echo "shell died before the disable race" >&2; exit 1; }
+    sleep 1
+done
+for _ in $(seq 1 20); do
+    grep -q "PWGEN_SELFTEST race=done" "$LOG" && break
+    sleep 1
+done
+race=$(sed -n 's/.*PWGEN_SELFTEST \(race=.*\)/\1/p' "$LOG" | tr '\n' ' ')
+echo "disable race: ${race:-<none>}"
+case "$race" in
+    *"race=done"*) ;;
+    "")            echo "the disable-race scenario never ran" >&2; exit 1 ;;
+    *)             echo "the disable-race scenario did not finish: $race" >&2; exit 1 ;;
+esac

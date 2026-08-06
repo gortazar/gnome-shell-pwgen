@@ -38,9 +38,10 @@ criteria:
 | Rule | Status | Evidence |
 | --- | --- | --- |
 | Only use initialization for static resources | Pass | Module scope holds imports, one function declaration and `GObject.registerClass` only. No instances, no signals, no sources, no patching of shared state. |
-| Destroy all objects in `disable()` | Pass | `disable()` at `extension.js:220` destroys the indicator (`:221`) and drops the reference (`:222`). |
-| Disconnect all signals in `disable()` | Pass | The only three connections (`:67`, `:85`, `:201`) are on menu items owned by the indicator and go with it. |
+| Destroy all objects in `disable()` | Pass | `disable()` at `extension.js:193` destroys the indicator (`:194`) and drops the reference (`:195`). |
+| Disconnect all signals in `disable()` | Pass | Four connections (`:37`, `:60`, `:78`, `:174`); the ::destroy one and the menu items are all owned by the indicator and go with it. |
 | Remove main loop sources in `disable()` | Pass | The extension creates none: zero `timeout_add` / `idle_add` / `setTimeout` in shipped code. |
+| Cancel asynchronous work in `disable()` | Pass | Generation reads entropy asynchronously, so `disable()` can land mid-generation. The indicator holds a `Gio.Cancellable` (`:36`) cancelled from its ::destroy handler (`:37`), which aborts the read on `/dev/urandom`; the continuation checks it before touching the menu (`:117`) or reporting an error (`:131`). Covered by the disable-mid-generation scenario in `ci/selftest-hook.js`, which fails the smoke test if the shell logs "has been already disposed". |
 
 An earlier revision called `Gio._promisify()` at module scope. That patches a
 prototype shared with the rest of the shell, at import time, and never restores
