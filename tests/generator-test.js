@@ -4,6 +4,8 @@
 // Unit tests for lib/generator.js. Runs under plain `gjs`, no display and no
 // GNOME Shell: the module under test only imports Gio/GLib.
 
+import Gio from 'gi://Gio';
+
 import {
     CHARSETS,
     bufferedSource,
@@ -234,4 +236,70 @@ test('every class charset is non-empty and free of duplicates', async () => {
         assert(charset.length > 0, `${name} is empty`);
         assertEquals(new Set(charset).size, charset.length, `${name} has duplicate characters`);
     }
+});
+
+// --- Cancellation ------------------------------------------------------------
+//
+// The shell can disable the extension while a generation is in flight. What must
+// not happen then is the read continuing and the promise resolving into a
+// teardown that has already run: the menu section it would update is disposed by
+// then, and touching it logs a stack of Gjs-CRITICALs.
+
+test('generate rejects when handed an already-cancelled cancellable', async () => {
+    const cancellable = new Gio.Cancellable();
+    cancellable.cancel();
+
+    await assertThrows(
+        () => generate({ length: 14, classes: ALL_CLASSES, cancellable }),
+        'a password was produced despite a cancelled cancellable');
+});
+
+test('cancelling mid-generation stops it with Gio CANCELLED', async () => {
+    const cancellable = new Gio.Cancellable();
+    // A long password needs many draws, so the read is certainly still in flight
+    // when cancel() runs on this same tick.
+    const promise = generate({ length: 128, classes: ALL_CLASSES, cancellable });
+    cancellable.cancel();
+
+    let error = null;
+    try {
+        await promise;
+    } catch (caught) {
+        error = caught;
+    }
+    assert(error !== null, 'generation resolved after being cancelled');
+    // The cancellation has to come from Gio rather than a JavaScript-side check:
+    // only then is the outstanding read on /dev/urandom actually torn down.
+    assert(error.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED),
+        `expected Gio.IOErrorEnum.CANCELLED, got ${error}`);
+});
+
+test('randomBytes rejects when its cancellable is cancelled', async () => {
+    const cancellable = new Gio.Cancellable();
+    cancellable.cancel();
+
+    await assertThrows(() => randomBytes(32, cancellable),
+        'bytes were produced despite a cancelled cancellable');
+});
+
+test('generateMany stops when cancelled part way through', async () => {
+    const cancellable = new Gio.Cancellable();
+    const promise = generateMany({
+        length: 64, classes: ALL_CLASSES, count: 20, cancellable,
+    });
+    cancellable.cancel();
+
+    await assertThrows(() => promise, 'generateMany finished after being cancelled');
+});
+
+test('a cancelled buffered source stops handing out bytes it still holds', async () => {
+    // The buffer can satisfy several draws without another read, so cancellation
+    // has to be noticed even when no read is pending.
+    const cancellable = new Gio.Cancellable();
+    const source = bufferedSource(randomBytes, cancellable);
+    await source.bytes(1);
+    cancellable.cancel();
+
+    await assertThrows(() => source.bytes(1),
+        'the source kept serving bytes after being cancelled');
 });

@@ -83,14 +83,22 @@ session:
 ./ci/smoke-test.sh
 ```
 
-It installs the extension into a scratch prefix, starts `gnome-shell --headless`
-on a private D-Bus session, disables extension version validation (otherwise a
-newer shell reports `OUT_OF_DATE` and never runs the code), and then checks that:
+It builds a throwaway `HOME` and runtime directory, installs the extension there,
+starts `gnome-shell --headless` on a private D-Bus session, disables extension
+version validation (otherwise a newer shell reports `OUT_OF_DATE` and never runs
+the code), and then checks that:
 
 1. the extension reaches the `ENABLED` state, queried over D-Bus;
-2. generating a password actually works; and
-3. the shell log contains no `Password Generator Error` or
+2. generating a password actually works;
+3. disabling the extension mid-generation leaves nothing behind — the shell log
+   must contain no `has been already disposed`, which is what a continuation
+   updating a menu the shell has torn down produces; and
+4. the shell log contains no `Password Generator Error` or
    `clipboard read-back mismatch`.
+
+Nothing there is your session: the throwaway `HOME` is why running it cannot
+install into `~/.local/share/gnome-shell/extensions` or rewrite the extension list
+of the shell you are logged into.
 
 Check 2 is the one that matters. A load-only test would not have caught the
 `communicate_utf8_async` bug, because that only fired when the menu item was

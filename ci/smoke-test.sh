@@ -121,6 +121,13 @@ if grep -qi "clipboard read-back mismatch" "$LOG"; then
     echo "FAIL: password did not reach the clipboard" >&2
     exit 1
 fi
+# Left by a continuation that carried on into a menu the shell had already torn
+# down: what disabling the extension mid-generation used to do.
+if grep -q "has been already disposed" "$LOG"; then
+    echo "FAIL: something was used after being destroyed:" >&2
+    grep "has been already disposed" "$LOG" | head -5 >&2
+    exit 1
+fi
 
 # The log lives in $WORK; the EXIT trap copies it out when KEEP_LOG is set and
 # removes the whole throwaway tree either way.

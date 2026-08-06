@@ -6,6 +6,7 @@
 // Foundation; either version 2 of the License, or (at your option) any later
 // version. See the LICENSE file for the full text.
 
+import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
@@ -23,6 +24,19 @@ class PwgenIndicator extends PanelMenu.Button {
         super._init(0.0, 'Password Generator');
         this._extension = extension;
         this._settings = extension.getSettings();
+
+        // Generation is asynchronous and disable() can land in the middle of one.
+        // Cancelling on destroy tears down the outstanding read on /dev/urandom
+        // and tells the continuation below that its menu is gone; without it the
+        // promise resolves into a disposed St.BoxLayout and the journal fills with
+        // "has been already disposed" criticals.
+        //
+        // A ::destroy handler rather than an overridden destroy(): the signal is
+        // emitted however the actor dies, including from C.
+        this._cancellable = new Gio.Cancellable();
+        this.connect('destroy', () => {
+            this._cancellable.cancel();
+        });
 
         // 1. Icon in panel
         this.icon = new St.Icon({
@@ -85,12 +99,23 @@ class PwgenIndicator extends PanelMenu.Button {
             symbols: this._settings.get_boolean('use-symbols'),
         };
 
+        // Held in a local: the continuation still has to know why it was woken,
+        // and by then `this` may be a destroyed object.
+        const cancellable = this._cancellable;
+
         try {
             const passwords = await generateMany({
                 length,
                 classes,
                 count: numPasswords,
+                cancellable,
             });
+
+            // The extension may have been disabled while the entropy was being
+            // read. Nothing below is safe then, and a password nobody is waiting
+            // for any more should not reach the clipboard either.
+            if (cancellable.is_cancelled())
+                return;
 
             // Copy to clipboard
             this._copyToClipboard(passwords.join('\n'));
@@ -101,6 +126,11 @@ class PwgenIndicator extends PanelMenu.Button {
             // Update recent passwords list in the menu
             this._updateHistory(passwords);
         } catch (error) {
+            // Cancellation is teardown, not a failure: it is what disable() looks
+            // like from in here, and there is nobody left to notify.
+            if (cancellable.is_cancelled())
+                return;
+
             // Never a weaker password on failure: the generator refuses rather
             // than falling back, and the user is told nothing was produced.
             console.error('Password Generator Error:', error);
