@@ -1,6 +1,7 @@
 # Password Generator
 
 [![CI](https://github.com/gortazar/gnome-shell-pwgen/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gortazar/gnome-shell-pwgen/actions/workflows/ci.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=gortazar_gnome-shell-pwgen&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=gortazar_gnome-shell-pwgen)
 [![GNOME Shell](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fgortazar%2Fgnome-shell-pwgen%2Fmain%2Fmetadata.json&query=%24%5B%27shell-version%27%5D&label=GNOME%20Shell&color=4A86CF)](https://github.com/gortazar/gnome-shell-pwgen/blob/main/metadata.json)
 [![code style: eslint](https://img.shields.io/badge/code_style-eslint-4B32C3?logo=eslint&logoColor=white)](https://github.com/gortazar/gnome-shell-pwgen/blob/main/eslint.config.js)
 

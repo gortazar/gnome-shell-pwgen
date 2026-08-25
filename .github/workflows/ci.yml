@@ -68,6 +68,15 @@ jobs:
       - name: shexli
         run: ./ci/lint-package.sh
 
+  # The SonarQube Cloud quality gate. A job of its own, beside the test jobs rather than
+  # inside one, so a red gate can never be mistaken for a failing test suite — and because
+  # the gate is advisory: it reports, it does not block.
+  sonar:
+    name: SonarQube Cloud
+    uses: gortazar/aideas/.github/workflows/sonar.yml@v1
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
   shell:
     name: GNOME Shell (${{ matrix.image }})
     needs: lint
