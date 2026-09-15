@@ -46,7 +46,7 @@ criteria:
 An earlier revision called `Gio._promisify()` at module scope. That patches a
 prototype shared with the rest of the shell, at import time, and never restores
 it — against "don't modify anything before `enable()`". It was replaced with a
-local Promise wrapper (`extension.js:26`).
+local Promise wrapper (`readUrandom`, `lib/generator.js:61`).
 
 ### Imports
 
@@ -61,7 +61,7 @@ local Promise wrapper (`extension.js:26`).
 | Rule | Status | Evidence |
 | --- | --- | --- |
 | Not obfuscated or minified | Pass | Plain, commented JavaScript. |
-| No excessive logging | Pass | Two calls, both failure paths: `:106`, `:120`. Nothing logged on success. |
+| No excessive logging | Pass | Two calls, both failure paths: `:136`, `:150`. Nothing logged on success. |
 | No forced `run_dispose()` | Pass | Not used. |
 | No telemetry | Pass | No network access of any kind. |
 | Must be functional | Pass | Verified on six shell versions in CI. |
@@ -128,7 +128,7 @@ relicensed to GPL-2.0-or-later. SPDX headers are on both source files and
 | --- | --- |
 | No unnecessary files | Followed — `shexli` reports zero warnings on the package. |
 | Use a linter | Followed — ESLint (flat config, `eslint.config.js`) and `shexli` both run in CI on every push. |
-| Follow the HIG | Mostly — standard panel menu and `Adw` preferences. One inline style hardcodes a grey (`extension.js:134`) rather than following the theme. |
+| Follow the HIG | Mostly — standard panel menu and `Adw` preferences. One inline style hardcodes a grey (`extension.js:164`) rather than following the theme. |
 
 ## Generating in GJS rather than shelling out to pwgen
 
