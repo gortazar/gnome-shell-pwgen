@@ -9,3 +9,6 @@ schemas/*.compiled
 
 # Lint tooling
 node_modules/
+
+# nix build output link
+result
