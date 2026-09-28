@@ -4,8 +4,9 @@
 // ci/smoke-test.sh installs the extension and rewrites GNOME Shell's
 // enabled-extensions, both of which are destructive outside a throwaway
 // container: run on a developer machine it used to install into the real
-// ~/.local/share/gnome-shell/extensions (through the symlinks install.sh leaves
-// there, so it overwrote the working copy those point at) and replace the live
+// ~/.local/share/gnome-shell/extensions (through the symlinks that
+// scripts/install-local.sh leaves there, so it overwrote the working copy those
+// symlinks point at) and replace the live
 // session's extension list with just this one.
 //
 // The script now builds its own HOME and XDG_RUNTIME_DIR, which is the property

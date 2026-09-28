@@ -17,8 +17,8 @@ UUID="pwgen-generator@pwgen-gs.patxi"
 # The script installs an extension and rewrites GNOME Shell's enabled-extensions
 # list, so it must never see a real home directory. Run against one it would
 # install into ~/.local/share/gnome-shell/extensions -- over the symlinks
-# install.sh leaves there, so `cp` writes straight into the working copy they
-# point at -- and reduce the live session's extension list to this one extension
+# scripts/install-local.sh leaves there, so `cp` writes straight into the working
+# copy they point at -- and reduce the live session's extension list to this one
 # alone, through a dconf database that is per-user and not per-bus.
 WORK="$(mktemp -d -t pwgen-smoke-XXXXXX)"
 export HOME="$WORK/home"

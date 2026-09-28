@@ -100,7 +100,12 @@
           unit-tests = pkgs.runCommand "pwgen-unit-tests"
             {
               src = self;
-              nativeBuildInputs = [ pkgs.gjs ];
+              nativeBuildInputs = [
+                pkgs.gjs
+                # The installer tests run install.sh for real against a stub curl,
+                # so the suite needs what the script and its fixtures use.
+                pkgs.bash pkgs.zip pkgs.unzip pkgs.coreutils pkgs.findutils
+              ];
             } ''
             cp -r "$src" ./source
             chmod -R u+w ./source

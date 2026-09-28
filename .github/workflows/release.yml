@@ -1,0 +1,119 @@
+# Publish a release carrying the packed extension.
+#
+# Two ways in, because an agent building this repository can push a branch but not a tag:
+#
+#     git tag v0.2 && git push origin v0.2          # a tag you pushed yourself
+#     gh workflow run Release -f version=v0.2       # the workflow creates the tag
+#
+# Everything this needs is in this repository, which is why the workflow lives here: the
+# automatic GITHUB_TOKEN can create a tag, a release and its assets in its own repo, and no
+# personal access token or secret is involved.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, as the tag (e.g. v0.2)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # A dispatch run starts from a branch, so the version comes from the input; a tag
+      # push carries it in the ref. Everything below reads $VERSION and nothing else, so
+      # the two paths cannot diverge.
+      - name: Work out the version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ inputs.version }}"
+          else
+            version="${GITHUB_REF_NAME}"
+          fi
+          case "$version" in
+            v*) ;;
+            *) echo "version must look like v0.2, got '$version'" >&2; exit 1 ;;
+          esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "releasing $version"
+
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: "experimental-features = nix-command flakes"
+
+      # A release that fails its own tests is worse than no release.
+      - run: nix flake check --print-build-logs
+
+      # The tag and the extension have to describe the same thing. Without this, an asset
+      # whose metadata.json says 0.1 can be published under notes that say 0.2, and the
+      # only place the difference shows up is the user's Extensions app.
+      - name: Check the tag against metadata.json
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          declared="$(jq -r '.["version-name"] // empty' metadata.json)"
+          [ -n "$declared" ] || {
+            echo 'metadata.json has no "version-name"' >&2
+            exit 1
+          }
+          echo "metadata.json says $declared, the tag says ${VERSION#v}"
+          [ "$declared" = "${VERSION#v}" ] || {
+            echo "the tag and metadata.json disagree — refusing to publish" >&2
+            exit 1
+          }
+
+      - name: Pack the extension
+        run: |
+          nix build --print-build-logs
+          mkdir -p dist
+          cp result/*.shell-extension.zip dist/
+          cd dist
+          for zip in *.zip; do
+            sha256sum "$zip" > "$zip.sha256"
+          done
+          ls -l
+
+      # On a dispatch run the tag does not exist yet, so the release creates it at the
+      # commit that was checked out. On a tag push --target is that same commit already.
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "$VERSION is already published" >&2
+            exit 1
+          fi
+          gh release create "$VERSION" dist/* \
+            --target "$GITHUB_SHA" \
+            --title "$VERSION" \
+            --notes "$(cat <<'NOTES'
+          Install without building anything:
+
+          ```sh
+          curl -fsSL https://raw.githubusercontent.com/gortazar/gnome-shell-pwgen/main/install.sh | sh
+          ```
+
+          Then log out and back in, and enable it:
+
+          ```sh
+          gnome-extensions enable pwgen-generator@pwgen-gs.patxi
+          ```
+
+          The asset below is the packed extension, exactly as `gnome-extensions pack` would
+          lay it out, with its SHA-256 beside it — which is what the installer checks the
+          download against. Passwords are generated inside the extension from the system
+          entropy pool; there is no `pwgen` binary and no subprocess, and no runtime
+          dependency beyond GNOME Shell 46 to 50.
+          NOTES
+          )"
