@@ -38,13 +38,32 @@ Nothing else. The extension has no runtime dependency beyond GNOME Shell itself.
 ## Installation
 
 ```sh
-./install.sh
+curl -fsSL https://raw.githubusercontent.com/gortazar/gnome-shell-pwgen/main/install.sh | sh
+```
+
+That downloads the packed extension from the latest
+[release](https://github.com/gortazar/gnome-shell-pwgen/releases), checks it against the
+SHA-256 published beside it, and unpacks it into
+`${XDG_DATA_HOME:-$HOME/.local/share}/gnome-shell/extensions`. Nothing is built, nothing
+needs root, and nothing outside that directory is touched. Then log out and back in (see
+[Reloading](#reloading-after-a-code-change)) and enable it:
+
+```sh
 gnome-extensions enable pwgen-generator@pwgen-gs.patxi
 ```
 
-`install.sh` compiles the GSettings schema and symlinks this checkout into
-`~/.local/share/gnome-shell/extensions/`, so edits to the working tree are picked up
-by the installed extension without reinstalling — subject to the reload caveat below.
+`VERSION=v0.2` installs a particular release instead of the latest, and `PREFIX=...`
+installs somewhere other than the extensions directory.
+
+### Installing a checkout instead
+
+For working on the extension, `scripts/install-local.sh` compiles the GSettings schema and
+symlinks this checkout into `~/.local/share/gnome-shell/extensions/`, so edits to the
+working tree are picked up without reinstalling — subject to the reload caveat below.
+
+```sh
+./scripts/install-local.sh
+```
 
 ## Reloading after a code change
 
