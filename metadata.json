@@ -10,5 +10,6 @@
     "50"
   ],
   "url": "https://github.com/gortazar/gnome-shell-pwgen",
+  "version-name": "0.2",
   "settings-schema": "org.gnome.shell.extensions.pwgen-generator"
 }

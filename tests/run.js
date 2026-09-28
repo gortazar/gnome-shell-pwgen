@@ -8,6 +8,7 @@ import './purity-test.js';
 import './ci-hook-test.js';
 import './ci-scripts-test.js';
 import './installer-test.js';
+import './release-test.js';
 
 import { run } from './harness.js';
 
